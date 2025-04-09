@@ -1,0 +1,101 @@
+#include <WiFi.h>
+#include <ESPAsyncWebServer.h>
+#include <PubSubClient.h>
+
+// Wi-Fi настройки
+const char* ssid = "ssid"; //your ssid here
+const char* password = "password"; //your password here
+
+// MQTT настройки
+const char* mqtt_server = "123.456.0.789"; // IP компьютера с брокером MQTT
+const int mqtt_port = 1883; // номер порта MQTT
+const char* mqtt_topic = "mai_iot/test/";
+
+// Wi-Fi и MQTT
+WiFiClient espClient;
+PubSubClient mqttClient(espClient);
+AsyncWebServer server(80);
+
+// Подключение к Wi-Fi
+void connectToWiFi() {
+  WiFi.begin(ssid, password);
+  Serial.print("Подключение к Wi-Fi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+  Serial.println("\nWi-Fi подключено. IP: " + WiFi.localIP().toString());
+}
+
+// Подключение к MQTT брокеру
+void connectToMQTT() {
+  while (!mqttClient.connected()) {
+    Serial.println("Подключение к MQTT...");
+    if (mqttClient.connect("ESP32Client")) {
+      Serial.println("MQTT подключено");
+    } else {
+      Serial.print("Ошибка MQTT: ");
+      Serial.print(mqttClient.state());
+      delay(2000);
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(9600);
+  connectToWiFi();
+
+  mqttClient.setServer(mqtt_server, mqtt_port);
+  connectToMQTT();
+
+  // HTTP обработчик
+  server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String batteryLevelStr = request->getParam("battery_level") ? request->getParam("battery_level")->value() : "Not provided";
+    String chargeCounterStr = request->getParam("charge_counter") ? request->getParam("charge_counter")->value() : "Not provided";
+    String currentAvgStr = request->getParam("current_avg") ? request->getParam("current_avg")->value() : "Not provided";
+
+    Serial.println("Получены данные:");
+    Serial.println("Battery level: " + batteryLevelStr);
+    Serial.println("Charge counter: " + chargeCounterStr);
+    Serial.println("Average current: " + currentAvgStr);
+
+    // Преобразуем в числа
+    float batteryLevel = batteryLevelStr.toFloat();
+    float chargeCounter = chargeCounterStr.toFloat();
+    float currentAvg = currentAvgStr.toFloat();
+
+    float runtimeMinutes = 0;
+      if (currentAvg < 0) {
+        float dischargeCurrent = -currentAvg;
+        runtimeMinutes = (batteryLevel * chargeCounter) / dischargeCurrent / 100.0;
+        Serial.println("Оставшееся время работы: " + String(runtimeMinutes, 2) + " минут");
+      } else {
+        Serial.println("Расчёт времени невозможен. Устройство заряжается или ток нулевой.");
+      }
+
+    // Составляем JSON строку для отправки по MQTT
+    String payload = "{";
+      payload += "\"battery_level\": " + batteryLevelStr + ",";
+      payload += "\"charge_counter\": " + chargeCounterStr + ",";
+      payload += "\"current_avg\": " + currentAvgStr + ",";
+      payload += "\"runtime_minutes\": " + String(runtimeMinutes, 2);
+      payload += "}";
+
+    // Отправляем по MQTT
+    if (mqttClient.connected()) {
+      mqttClient.publish(mqtt_topic, payload.c_str());
+      Serial.println("MQTT отправлено: " + payload);
+    } else {
+      Serial.println("MQTT не подключено. Повторное подключение...");
+      connectToMQTT();
+    }
+
+    request->send(200, "text/plain", "Data received and published via MQTT");
+  });
+
+  server.begin();
+}
+
+void loop() {
+  mqttClient.loop(); // Обработка MQTT
+}
