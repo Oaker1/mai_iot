@@ -1,3 +1,4 @@
+# Рандомный генератор данных для теста MQTT
 import time
 import random
 import json
