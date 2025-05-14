@@ -1,11 +1,50 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" 
-  android:layout_width="match_parent" 
-  android:layout_height="match_parent" 
-  android:orientation="vertical" 
-  android:padding="16dp" android:gravity="center">
-<TextView android:id="@+id/batteryTextView" 
-  android:layout_width="wrap_content" 
-  android:layout_height="wrap_content" 
-  android:textSize="18sp" android:textColor="#000000" 
-  android:text="Loading battery data..."/>
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/etIpAddress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="IP адрес ESP32"
+        android:inputType="text"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnConnect"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Подключиться"/>
+
+        <Button
+            android:id="@+id/btnStop"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:enabled="false"
+            android:text="Остановить"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Статус: неактивно"
+        android:textSize="18sp"/>
+
+    <TextView
+        android:id="@+id/batteryInfoText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textSize="16sp"
+        android:text="Данные батареи появятся здесь..."/>
 </LinearLayout>
